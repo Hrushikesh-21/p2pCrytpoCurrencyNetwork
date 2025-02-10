@@ -36,12 +36,13 @@ class Event():
         if self.sim.peers[self.peer_id].longestBlk.balances[self.peer_id] == 0:
             self.sim.events.put(Event(self.time + np.random.exponential(self.sim.txnDelayMeanTime), 'genTransaction', self.peer_id, self.sim))
             return
-        amount = np.random.randint(1, self.sim.peers[self.peer_id].longestBlk.balances[self.peer_id])
-        self.transaction = Transaction(self.sim.trxn_id, self.peer_id, rec_id, amount)
+        elif self.sim.peers[self.peer_id].longestBlk.balances[self.peer_id] == 1:
+            amount = 1
+        else:
+            amount = np.random.randint(1, self.sim.peers[self.peer_id].longestBlk.balances[self.peer_id])
+        transaction = Transaction(self.sim.trxn_id, self.peer_id, rec_id, amount)
         self.sim.trxn_id += 1
-        self.sim.peers[self.peer_id].transaction_ids.add(self.transaction.id)
-        self.sim.peers[self.peer_id].transactions.append(self.transaction)
-        self.broadcast()
+        self.sim.events.put(Event(self.time, 'recTransaction', self.peer_id, self.sim,transaction))
         self.sim.events.put(Event(self.time + np.random.exponential(self.sim.txnDelayMeanTime), 'genTransaction', self.peer_id, self.sim))
         return 
 
@@ -53,12 +54,13 @@ class Event():
         self.broadcast()
         return 
 
-    def verifyTrans(trans, balances):
-        return balances[trans.sender] >= trans.amount and trans.amount > 0
+    def verifyTrans(self, trans, balances):
+        return balances[trans.sender] >= trans.amount and trans.amount>0
 
     def genBlock(self):
         if self.block != self.sim.peers[self.peer_id].longestBlk:
             return
+        self.sim.bins[self.peer_id]+=1
         currBlk = self.block
         currBalances = self.block.balances
         minedTransactions = []
@@ -70,48 +72,47 @@ class Event():
         minedTransactions = set(minedTransactions)
 
         blkTransactions = []
-        if self.block.transactions != None:
-            for trans in self.block.transactions:
+        if self.sim.peers[self.peer_id].transactions != None:
+            for trans in self.sim.peers[self.peer_id].transactions:
                 if trans not in minedTransactions and self.verifyTrans(trans, currBalances):
                     currBalances[trans.sender] -= trans.amount
                     currBalances[trans.recipient] += trans.amount
-                    blkTransactions.add(trans)
+                    blkTransactions.append(trans)
                 if len(blkTransactions) == 999:
                     break
-
         currBalances[self.peer_id] += 50
         newBlock = Block(self.sim.blk_id, self.block, self.peer_id, self.time, blkTransactions, currBalances, self.block.depth+1)
         self.sim.blk_id += 1
         self.sim.peers[self.peer_id].longestBlk = newBlock
-
         newTask = Event(self.time, 'recBlock', self.peer_id, self.sim, None, newBlock)
         self.sim.events.put(newTask)
         return
 
     def verifyBlock(self, block):
-        currBlk = block.prevBlock
-        currBalances = block.balances
-        minedTransactions = []
-        while currBlk != None:
-            if currBlk.transactions != None:
-                minedTransactions = minedTransactions + currBlk.transactions
-            currBlk = currBlk.prevBlock
-        minedTransactions = set(minedTransactions)
-        if block.transactions != None:
-            for trans in block.transactions:
-                if trans not in minedTransactions and self.verifyTrans(trans, currBalances):
-                    currBalances[trans.sender] -= trans.amount
-                    currBalances[trans.recipient] += trans.amount
-                else:
-                    return False
+        # currBlk = block.prevBlock
+        # currBalances = block.balances
+        # minedTransactions = []
+        # while currBlk != None:
+        #     if currBlk.transactions != None:
+        #         minedTransactions = minedTransactions + currBlk.transactions
+        #     currBlk = currBlk.prevBlock
+        # minedTransactions = set(minedTransactions)
+        # if block.transactions != None:
+        #     for trans in block.transactions:
+        #         if trans not in minedTransactions and self.verifyTrans(trans, currBalances):
+        #             currBalances[trans.sender] -= trans.amount
+        #             currBalances[trans.recipient] += trans.amount
+        #         else:
+        #             return False
             
         return True
 
     def recBlock(self):
         if self.block.id in self.sim.peers[self.peer_id].block_ids:
             return
-        self.broadcast()
+        self.sim.peers[self.peer_id].tree.add_block(self.block,self.time)
         self.sim.peers[self.peer_id].block_ids.add(self.block.id)
+        self.broadcast()
         if self.verifyBlock(self.block):
             if self.block.depth > self.sim.peers[self.peer_id].longestBlk.depth or (self.block.depth == self.sim.peers[self.peer_id].longestBlk.depth and self.block.timestamp < self.sim.peers[self.peer_id].longestBlk.timestamp):
                 self.sim.peers[self.peer_id].longestBlk = self.block
