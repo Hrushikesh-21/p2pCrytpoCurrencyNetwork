@@ -34,13 +34,12 @@ python main.py --numPeers NUMPEERS --slowPerc SLOWPERC --lowCpuPerc LOWCPUPERC \
 |-------------------------|-------------|
 | `--maxBlockSize`       | Maximum block size |
 | `--maxTransactionSize` | Maximum transaction size |
-| `--miningFee`          | Mining fee per transaction |
+| `--miningFee`          | Mining fee per Block |
 
 ### Example Command  
 ```sh
 python main.py --numPeers 100 --slowPerc 20 --lowCpuPerc 15 \
-               --txnDelayMeanTime 10 --maxSimTime 5000 \
-               --maxBlockSize 1 --maxTransactionSize 0.5 --miningFee 0.01
+               --txnDelayMeanTime 10000 --maxSimTime 5000000\
 ```
 
 ---
