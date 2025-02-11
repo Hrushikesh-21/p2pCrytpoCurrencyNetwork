@@ -10,11 +10,7 @@ class Peer():
         self.transactions = []  
         self.longestBlk = None
         self.tree = BlockTree()
-
-    # def add_neighbor(self, peer):
-    #     self.neighbors.append(peer)
-    #     peer.add_neighbor(self)
-
+    
     def clear_neighbors(self):
        self.neighbors = []
 

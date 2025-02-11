@@ -3,6 +3,7 @@ import random
 import numpy as np
 
 def isConnected(Peers):
+        # Check connectivity of the network
         peers = len(Peers)
         visited = [False for i in range(peers)]
         def dfs(node):
@@ -13,11 +14,13 @@ def isConnected(Peers):
         dfs(0)
         for node in range(peers):
             if not visited[node]:
+                # if anything is not visted its not connected
                 return False
         return True
 
 def CreateNetwork(Peers):
     while True:
+        # Keep creating Graphs until its all connected
         createGraph(Peers)
         if isConnected(Peers):
             return
